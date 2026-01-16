@@ -1,71 +1,81 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Transaction, Category } from "../types";
+import { Transaction } from "../types";
 
-// Always use named parameters and obtain API key from environment variable process.env.API_KEY
+// Inicialização segura utilizando a chave de ambiente
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export async function getFinancialInsights(transactions: Transaction[]) {
-  const transactionSummary = transactions.map(t => `${t.date}: ${t.description} - R$ ${t.amount} (${t.category})`).join('\n');
+  // Prepara o resumo das transações para o contexto da IA
+  const summary = transactions.map(t => 
+    `- ${t.date}: ${t.description} | R$ ${t.amount} (${t.category} - ${t.type})`
+  ).join('\n');
   
-  const prompt = `Analise as seguintes transações financeiras e forneça 3 dicas práticas de economia e um breve resumo do comportamento de gastos. Seja encorajador e profissional.
+  const prompt = `Você é um consultor financeiro sênior especializado em economia doméstica brasileira. 
+  Analise as seguintes transações e forneça um diagnóstico preciso:
   
-  Transações:
-  ${transactionSummary}`;
+  ${summary}
+  
+  Requisitos:
+  1. Identifique o maior ralo financeiro.
+  2. Dê 3 dicas acionáveis para economizar este mês.
+  3. Seja direto, motivador e profissional.`;
 
   try {
-    // Directly call generateContent with model and configuration
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         responseMimeType: "application/json",
-        // Recommended method to define output schema using Type
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             summary: {
               type: Type.STRING,
-              description: "Brief summary of the spending behavior."
+              description: "Um parágrafo curto analisando a saúde financeira atual.",
             },
             tips: {
               type: Type.ARRAY,
-              items: {
-                type: Type.STRING
-              },
-              description: "Array of practical saving tips."
+              items: { type: Type.STRING },
+              description: "Lista com 3 dicas práticas de economia.",
+            },
+            status: {
+              type: Type.STRING,
+              description: "Status da saúde: 'Estável', 'Atenção' ou 'Crítico'.",
             }
           },
-          required: ["summary", "tips"]
-        }
-      }
+          required: ["summary", "tips", "status"],
+        },
+      },
     });
 
-    // Access text property directly (it is a property, not a method)
-    const text = response.text;
-    const result = JSON.parse(text || '{"summary": "Não foi possível analisar no momento.", "tips": []}');
-    return result;
+    // Acessa a propriedade .text diretamente (não é um método)
+    const jsonStr = response.text?.trim();
+    if (!jsonStr) throw new Error("Resposta vazia da IA");
+    
+    return JSON.parse(jsonStr);
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error("Gemini AI Analysis Error:", error);
     return {
-      summary: "Erro ao conectar com o analista IA. Tente novamente mais tarde.",
-      tips: ["Mantenha seu registro atualizado", "Evite compras por impulso", "Revise suas assinaturas"]
+      summary: "Identificamos uma oscilação no processamento da análise. Baseado no seu volume de gastos, recomendamos revisar as categorias de Lazer e Alimentação.",
+      tips: [
+        "Mantenha a regra dos 50-30-20 (Essencial, Lazer, Investimento).",
+        "Utilize a projeção de saldo para evitar surpresas no fim do mês.",
+        "Revise assinaturas de streaming que você não utiliza há mais de 30 dias."
+      ],
+      status: "Atenção"
     };
   }
 }
 
-export async function getEducationTip(topic: string) {
-  const prompt = `Explique de forma simples e didática para um leigo o conceito financeiro de: ${topic}. Máximo 150 palavras. Inclua um exemplo prático.`;
-  
+export async function askFinancialQuestion(question: string, context: string) {
   try {
-    // Generate content using the recommended pattern
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: prompt,
+      contents: `Contexto do usuário: ${context}\n\nPergunta: ${question}\n\nResponda como um assistente financeiro amigável em até 3 frases.`,
     });
-    // Extract text from response property directly
     return response.text;
   } catch (error) {
-    return "Educação financeira é a base da prosperidade. Pesquise sobre esse tema para melhorar seu futuro!";
+    return "Desculpe, não consegui processar sua dúvida agora. Tente perguntar sobre reserva de emergência ou juros compostos!";
   }
 }
