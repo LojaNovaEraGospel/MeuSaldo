@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Wallet, Plus, RefreshCcw, ExternalLink, MoreVertical, Landmark, ArrowUpRight, ArrowDownRight, Trash2, Edit3, Check, X as CloseIcon, FileText, Calendar, Search, Link2 } from 'lucide-react';
+import { Wallet, Plus, RefreshCcw, ExternalLink, MoreVertical, Landmark, ArrowUpRight, ArrowDownRight, Trash2, Edit3, Check, X as CloseIcon, FileText, Calendar, Search, Link2, AlertTriangle } from 'lucide-react';
 import { BankAccount } from '../types';
 
 interface AccountsProps {
@@ -18,6 +18,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, onAddAccount, onDeleteAcc
   const [editValue, setEditValue] = useState('');
   const [selectedStatementAccount, setSelectedStatementAccount] = useState<BankAccount | null>(null);
   const [syncingAccountId, setSyncingAccountId] = useState<string | null>(null);
+  const [accountToDelete, setAccountToDelete] = useState<BankAccount | null>(null);
   
   const menuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -55,6 +56,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, onAddAccount, onDeleteAcc
       onUpdateAccount(id, editValue.trim());
     }
     setEditingId(null);
+  };
+
+  const confirmDelete = () => {
+    if (accountToDelete) {
+      onDeleteAccount(accountToDelete.id);
+      setAccountToDelete(null);
+    }
   };
 
   useEffect(() => {
@@ -158,9 +166,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, onAddAccount, onDeleteAcc
                       onClick={(e) => {
                         e.stopPropagation();
                         setActiveMenuId(null);
-                        onDeleteAccount(acc.id);
+                        setAccountToDelete(acc);
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left border-t border-slate-50 dark:border-slate-800"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left border-t border-slate-50 dark:border-slate-800 font-bold"
                     >
                       <Trash2 className="w-4 h-4" />
                       Excluir Conta
@@ -220,6 +228,36 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, onAddAccount, onDeleteAcc
           <span className="text-slate-400 font-bold">Conectar Banco</span>
         </button>
       </div>
+
+      {/* Modal de Exclusão Customizado */}
+      {accountToDelete && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setAccountToDelete(null)} />
+          <div className="relative bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-300 text-center">
+            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <AlertTriangle className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 dark:text-white mb-2">Excluir Conta?</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">
+              Você está prestes a remover a conta <strong className="text-slate-700 dark:text-slate-200">{accountToDelete.name}</strong>. Todas as transações vinculadas também serão excluídas. Esta ação não pode ser desfeita.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => setAccountToDelete(null)}
+                className="py-3.5 px-6 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="py-3.5 px-6 rounded-2xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 dark:shadow-none transition-all active:scale-95"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedStatementAccount && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">

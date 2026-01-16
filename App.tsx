@@ -122,10 +122,8 @@ const App: React.FC = () => {
   };
 
   const handleDeleteAccount = (id: string) => {
-    if (confirm("Deseja realmente remover esta conta?")) {
-      setAccounts(prev => prev.filter(acc => acc.id !== id));
-      setTransactions(prev => prev.filter(tx => tx.accountId !== id));
-    }
+    setAccounts(prev => prev.filter(acc => acc.id !== id));
+    setTransactions(prev => prev.filter(tx => tx.accountId !== id));
   };
 
   const handleUpdateAccount = (id: string, newName: string) => {
